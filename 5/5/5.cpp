@@ -1,96 +1,141 @@
 ﻿#include <iostream>
+#include <iomanip>
+#include <vector>
 #include <cmath>
+
+using namespace std;
+
+const double E1 = 1e-4;
+const double E2 = 1e-5;
 
 double F1(double x)
 {
-    return pow((x + pow(x, 3)), 0.5);
+	return (pow((x + x * x * x), 0.5));
 }
 
-double F2(double x)
+double F2(const double& x, const double& y)
 {
-    return pow(pow(x, 3) - 1, -0.5);
+	return (x * x + 2 * y);
 }
 
-double f(double x, double y)
+double Simpson(double a, double b, double e, double F1(double))
 {
-    return (pow(x, 2)) / (1 + pow(y, 2));
+	int n = 2;
+	double h = (b - a) / n;
+	double I1 = F1(a) + F1(b);
+	double I2;
+	double x_i = a;
+	double sum_Nech = 0;
+	double sum_Ch = 0;
+
+	do {
+
+		I2 = I1;
+		n *= 2;
+		h = (b - a) / n;
+		x_i = a + h;
+
+		for (int i = 0; i < n; i++) {
+			if ((i % 2) == 0)
+			{
+				sum_Ch += F1(x_i);
+			}
+			else {
+				sum_Nech += F1(x_i);
+			}
+			x_i += h;
+		}
+
+		I1 = (h / 3) * (F1(a) + 4 * sum_Nech + 2 * sum_Ch + F1(b));
+	} while (fabs(I1 - I2) > 15 * e);
+
+	return I1;
 }
 
-double trapezoid_rule(double (*f) (double), double a, double b, int nSeg = 1, double e = 1e-8)
+double Simpson_Kub(const double& a, const double& b, const double& c, const double& d, double func2(const double&, const double&), const double& N, const double& M)
 {
-    double dx, sum, res = 0, resPrev;
-    do {
-        resPrev = res;
-        dx = 1 * (b - a) / nSeg;      //1.0
-        sum = 0.5 * (f(a) + f(b));
-        for (int i = 1; i < nSeg; i++) {
-            sum += f(a + i * dx);
-        }
-        res = sum * dx;
-        nSeg *= 2;
-    } while (fabs(res - resPrev) > 3 * e);
-    return res;
+
+	double h_x = (b - a) / (2 * N);
+	double h_y = (d - c) / (2 * M);
+
+	double sum = 0;
+	double I = 0;
+	double X_i = a;
+	double Y_i = c;
+
+	vector<double>X;
+	vector<double>Y;
+
+	do {
+		X.push_back(X_i);
+		X_i += h_x;
+	} while (X_i <= b);
+
+	do {
+		Y.push_back(Y_i);
+		Y_i += h_y;
+	} while (Y_i <= d);
+
+	for (int i = 0; i < N; i++) {
+		for (int j = 0; j < M; j++) {
+			sum += func2(X[2 * i], Y[2 * j]) + 4 * func2(X[2 * i + 1], Y[2 * j]) +
+				func2(X[2 * i + 2], Y[2 * j]) + 4 * func2(X[2 * i], Y[2 * j + 1]) +
+				16 * func2(X[2 * i + 1], Y[2 * j + 1]) + 4 * func2(X[2 * i + 2], Y[2 * j + 1])
+				+ func2(X[2 * i], Y[2 * j + 2]) + 4 * func2(X[2 * i + 1], Y[2 * j + 2])
+				+ func2(X[2 * i + 2], Y[2 * j + 2]);
+		}
+	}
+	I += sum;
+	I *= ((h_x * h_y) / 9);
+
+	return I;
 }
 
-double Simpson_rule(double (*f) (double), double a, double b, int nSeg = 2, double e = 1e-8)
-{
-    if (nSeg % 2 != 0) {
-        std::cout << "THE NUMBER OF NODES MUST BE EVEN.\n";
-        exit(0);
-    }
-    double dx, sum, res = 0, resPrev;
-    do {
-        resPrev = res;
-        dx = (b - a) / nSeg;
-        sum = f(a) + f(b);
-        for (int i = 1; i < nSeg; i += 2) {
-            sum += f(a + i * dx) * 4;
-        }
-        for (int i = 2; i < nSeg; i += 2) {
-            sum += f(a + i * dx) * 2;
-        }
-        res = dx / 3 * sum;
-        nSeg *= 2;
-    } while (fabs(res - resPrev) > 15 * e);
-    return res;
+double Trapezoid(double a, double b, const double E, double func1(double)) {
+
+	int n = 2;
+	double h = (b - a) / n;
+	double sum = 0;
+	double I1 = func1(a) + func1(b);
+	double I2, X_n;
+
+	do {
+		I2 = I1;
+		n *= 2;
+		h = (b - a) / n;
+		X_n = a;
+		sum = 0;
+		for (int i = 0; i < n - 1; i++) 
+		{
+			X_n += h;
+			sum += func1(X_n);
+		}
+		I1 = (h / 2) * (func1(a) + 2 * sum + func1(b));
+	} while (fabs(I1 - I2) >= 3 * E);
+
+	return I1;
 }
 
-double Simpson_rule(double (*f) (double, double), double a, double b, double c, double d, int m = 2, int n = 2, double e = 1e-8) {
-    if (n % 2 != 0 || m % 2 != 0) {
-        std::cout << "THE NUMBER OF NODES MUST BE EVEN.\n";
-        exit(0);
-    }
-    double dx = (b - a) / (2 * n);
-    double dy = (d - c) / (2 * m);
-    double sum = 0;
-    double res = 0;
-    double resPrev;
+int main() {+
+	double a1 = 0.6;
+	double b1 = 1.724;
+	double a2 = 0;
+	double b2 = 2.0;
+	double c = 0;
+	double d = 1.0;
 
-    do {
-        resPrev = res;
-        for (int i = 0; i < n; i++) {
-            for (int j = 0; j < m; j++) {
-                sum += f(a + (2 * i * dx), c + (2 * j * dy));
-                sum += 4 * f(a + ((2 * i + 1) * dx), c + (2 * j * dy));
-                sum += f(a + ((2 * i + 2) * dx), c + (2 * j * dy));
-                sum += 4 * f(a + (2 * i * dx), c + ((2 * j + 1) * dy));
-                sum += 16 * f(a + ((2 * i + 1) * dx), c + ((2 * j + 1) * dy));
-                sum += 4 * f(a + ((2 * i + 2) * dx), c + ((2 * j + 1) * dy));
-                sum += f(a + (2 * i * dx), c + ((2 * j + 2) * dy));
-                sum += 4 * f(a + ((2 * i + 1) * dx), c + ((2 * j + 2) * dy));
-                sum += f(a + ((2 * i + 2) * dx), c + ((2 * j + 2) * dy));
-            }
-        }
-        res = sum * (dx * dy / 9);
-        sum = 0;
-    } while (fabs(res - resPrev) > 15 * e);
-    return res;
-}
+	cout << "Trapezoid's method: " << endl;
+	cout << setprecision(8) << Trapezoid(a1, b1, E1, F1) << endl;
+	cout << "Simson's method: " << endl;
+	cout << setprecision(8) << Simpson(a1, b1, E2, F1) << endl;
 
+	int n, m;
+	cout << "enter N and M:" << endl;
+	cin >> n;
+	cin >> m;
 
+	cout << "Simpson's cubature method: " << endl;
+	cout << setprecision(8) << Simpson_Kub(a2, b2, c, d, F2, n, m) << endl;
 
-int main() {
-    double res = Simpson_rule(f, 0, 4, 1, 2, 50, 50);
-    std::cout << res << '\n';
-    return 0;
+	return 0;
 }
